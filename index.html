@@ -46,10 +46,6 @@
             color: red;
             font-size: 14px;
         }
-        .success {
-            color: green;
-            font-size: 14px;
-        }
         ul {
             list-style: none;
             padding: 0;
@@ -65,6 +61,7 @@
 </head>
 <body>
     <h1>Регистрация, Вход и Комментарии</h1>
+
     <div id="authContainer" class="form-container">
         <h2>Регистрация</h2>
         <input type="email" id="registerEmail" placeholder="Введите Email" />
@@ -80,19 +77,20 @@
     </div>
 
     <div id="commentContainer" class="comment-container" style="display: none;">
-        <h2>Оставьте комментарий:</h2>
+        <h2>Комментарии</h2>
         <textarea id="commentInput" placeholder="Напишите комментарий..."></textarea>
         <button id="submitComment">Отправить</button>
         <h3>Список комментариев:</h3>
         <ul id="commentsList"></ul>
+        <button id="logoutButton">Выйти</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
         import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
 
-        // Firebase конфигурация
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBHqJnWtHQAyOEzLb8UXcPtepND1pMs53I",
             authDomain: "comments-6024f.firebaseapp.com",
@@ -103,12 +101,12 @@
             appId: "1:816381498544:web:27ba0250808854dddf5775"
         };
 
-        // Инициализация Firebase
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const database = getDatabase(app);
 
-        // Элементы для регистрации и входа
+        // DOM Elements
         const registerEmail = document.getElementById("registerEmail");
         const registerPassword = document.getElementById("registerPassword");
         const registerButton = document.getElementById("registerButton");
@@ -122,12 +120,12 @@
         const authContainer = document.getElementById("authContainer");
         const commentContainer = document.getElementById("commentContainer");
 
-        // Элементы для комментариев
         const commentInput = document.getElementById("commentInput");
         const submitComment = document.getElementById("submitComment");
         const commentsList = document.getElementById("commentsList");
+        const logoutButton = document.getElementById("logoutButton");
 
-        // Регистрация
+        // Registration
         registerButton.addEventListener("click", () => {
             const email = registerEmail.value;
             const password = registerPassword.value;
@@ -142,7 +140,7 @@
                 });
         });
 
-        // Вход
+        // Login
         loginButton.addEventListener("click", () => {
             const email = loginEmail.value;
             const password = loginPassword.value;
@@ -157,7 +155,18 @@
                 });
         });
 
-        // Проверка авторизации
+        // Logout
+        logoutButton.addEventListener("click", () => {
+            signOut(auth)
+                .then(() => {
+                    alert("Вы вышли из системы.");
+                })
+                .catch((error) => {
+                    console.error("Ошибка выхода:", error);
+                });
+        });
+
+        // Check authentication state
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 authContainer.style.display = "none";
@@ -169,7 +178,7 @@
             }
         });
 
-        // Отправка комментария
+        // Add comment
         submitComment.addEventListener("click", () => {
             const comment = commentInput.value;
             if (comment) {
@@ -183,7 +192,7 @@
             }
         });
 
-        // Загрузка комментариев
+        // Load comments
         function loadComments() {
             const commentsRef = ref(database, "comments");
             onValue(commentsRef, (snapshot) => {
