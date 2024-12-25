@@ -3,27 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Регистрация, Вход и Комментарии</title>
+    <title>Случайные топики и комментарии</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
             margin: 0;
             padding: 20px;
             background-color: #f8f9fa;
+            text-align: center;
         }
         h1, h2 {
             color: #333;
         }
-        .form-container, .comment-container {
-            max-width: 400px;
+        .form-container, .topic-container {
+            max-width: 600px;
             margin: 20px auto;
             background: #fff;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: left;
         }
-        input, textarea {
+        input, textarea, button {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
@@ -31,56 +32,67 @@
             border-radius: 4px;
         }
         button {
-            padding: 10px 20px;
-            font-size: 16px;
-            color: #fff;
             background-color: #007bff;
+            color: #fff;
             border: none;
-            border-radius: 5px;
             cursor: pointer;
         }
         button:hover {
             background-color: #0056b3;
-        }
-        .error {
-            color: red;
-            font-size: 14px;
         }
         ul {
             list-style: none;
             padding: 0;
         }
         li {
+            background: #fff;
             margin: 10px 0;
             padding: 10px;
-            border: 1px solid #ddd;
             border-radius: 5px;
-            background: #fff;
+            border: 1px solid #ddd;
+            position: relative;
+        }
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .delete-btn:hover {
+            background: #c0392b;
         }
     </style>
 </head>
 <body>
-    <h1>Регистрация, Вход и Комментарии</h1>
+    <h1>Случайные Топики</h1>
 
     <div id="authContainer" class="form-container">
         <h2>Регистрация</h2>
+        <input type="text" id="nickname" placeholder="Введите Никнейм" />
         <input type="email" id="registerEmail" placeholder="Введите Email" />
         <input type="password" id="registerPassword" placeholder="Введите Пароль" />
         <button id="registerButton">Зарегистрироваться</button>
-        <p class="error" id="registerError"></p>
+        <p id="registerError" style="color: red;"></p>
 
         <h2>Вход</h2>
         <input type="email" id="loginEmail" placeholder="Введите Email" />
         <input type="password" id="loginPassword" placeholder="Введите Пароль" />
         <button id="loginButton">Войти</button>
-        <p class="error" id="loginError"></p>
+        <p id="loginError" style="color: red;"></p>
     </div>
 
-    <div id="commentContainer" class="comment-container" style="display: none;">
-        <h2>Комментарии</h2>
+    <div id="mainContainer" class="topic-container" style="display: none;">
+        <h2 id="currentTopic">Нажмите на кнопку для генерации топика</h2>
+        <button id="generateTopic">Генерировать Топик</button>
+
+        <h3>Оставьте комментарий</h3>
         <textarea id="commentInput" placeholder="Напишите комментарий..."></textarea>
         <button id="submitComment">Отправить</button>
-        <h3>Список комментариев:</h3>
         <ul id="commentsList"></ul>
         <button id="logoutButton">Выйти</button>
     </div>
@@ -88,7 +100,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
 
         // Firebase Configuration
         const firebaseConfig = {
@@ -106,9 +118,12 @@
         const auth = getAuth(app);
         const database = getDatabase(app);
 
-        // DOM Elements
+        // Elements
+        const authContainer = document.getElementById("authContainer");
+        const mainContainer = document.getElementById("mainContainer");
         const registerEmail = document.getElementById("registerEmail");
         const registerPassword = document.getElementById("registerPassword");
+        const nickname = document.getElementById("nickname");
         const registerButton = document.getElementById("registerButton");
         const registerError = document.getElementById("registerError");
 
@@ -117,30 +132,54 @@
         const loginButton = document.getElementById("loginButton");
         const loginError = document.getElementById("loginError");
 
-        const authContainer = document.getElementById("authContainer");
-        const commentContainer = document.getElementById("commentContainer");
-
+        const logoutButton = document.getElementById("logoutButton");
+        const generateTopicButton = document.getElementById("generateTopic");
+        const currentTopic = document.getElementById("currentTopic");
         const commentInput = document.getElementById("commentInput");
         const submitComment = document.getElementById("submitComment");
         const commentsList = document.getElementById("commentsList");
-        const logoutButton = document.getElementById("logoutButton");
 
-        // Registration
+        const topics = [
+            "Как прошёл твой день?",
+            "Самое смешное, что случилось с тобой за последний год?",
+            "Какой предмет в школе ты ненавидишь?",
+            "Куда бы ты хотел отправиться в путешествие?",
+            "Какое твоё любимое блюдо?",
+            "Расскажи о своём самом странном сне.",
+            "Что для тебя важнее всего в жизни?",
+            "Какой фильм или сериал ты пересматривал больше всего?",
+            "Кем ты мечтал стать в детстве?",
+            "Что ты больше всего любишь делать в свободное время?",
+            "Какая песня тебя вдохновляет?",
+            "Какую суперспособность ты хотел бы иметь?",
+            "Если бы ты выиграл миллион, на что бы его потратил?",
+            "Какой день из жизни ты бы хотел пережить заново?",
+            "Что ты никогда не попробуешь в жизни?"
+        ];
+
+        // Регистрация
         registerButton.addEventListener("click", () => {
             const email = registerEmail.value;
             const password = registerPassword.value;
+            const nick = nickname.value;
+
+            if (!nick) {
+                registerError.textContent = "Введите никнейм!";
+                return;
+            }
 
             createUserWithEmailAndPassword(auth, email, password)
-                .then(() => {
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    push(ref(database, `users/${user.uid}`), { nickname: nick });
                     registerError.textContent = "";
-                    alert("Регистрация успешна!");
                 })
                 .catch((error) => {
                     registerError.textContent = error.message;
                 });
         });
 
-        // Login
+        // Вход
         loginButton.addEventListener("click", () => {
             const email = loginEmail.value;
             const password = loginPassword.value;
@@ -148,63 +187,53 @@
             signInWithEmailAndPassword(auth, email, password)
                 .then(() => {
                     loginError.textContent = "";
-                    alert("Вход выполнен!");
                 })
                 .catch((error) => {
                     loginError.textContent = error.message;
                 });
         });
 
-        // Logout
-        logoutButton.addEventListener("click", () => {
-            signOut(auth)
-                .then(() => {
-                    alert("Вы вышли из системы.");
-                })
-                .catch((error) => {
-                    console.error("Ошибка выхода:", error);
-                });
+        // Генерация случайного топика
+        generateTopicButton.addEventListener("click", () => {
+            const randomIndex = Math.floor(Math.random() * topics.length);
+            currentTopic.textContent = topics[randomIndex];
+            commentsList.innerHTML = ""; // Очищаем список комментариев для нового топика
         });
 
-        // Check authentication state
+        // Добавление комментария
+        submitComment.addEventListener("click", () => {
+            const comment = commentInput.value;
+            const topic = currentTopic.textContent;
+
+            if (!comment || topic === "Нажмите на кнопку для генерации топика") {
+                alert("Сначала выберите топик и напишите комментарий!");
+                return;
+            }
+
+            const commentsRef = ref(database, `topics/${topic}`);
+            push(commentsRef, {
+                text: comment,
+                userId: auth.currentUser.uid,
+                timestamp: Date.now()
+            });
+            commentInput.value = "";
+        });
+
+        // Выход
+        logoutButton.addEventListener("click", () => {
+            signOut(auth).catch((error) => console.error("Ошибка выхода:", error));
+        });
+
+        // Проверка авторизации
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 authContainer.style.display = "none";
-                commentContainer.style.display = "block";
-                loadComments();
+                mainContainer.style.display = "block";
             } else {
                 authContainer.style.display = "block";
-                commentContainer.style.display = "none";
+                mainContainer.style.display = "none";
             }
         });
-
-        // Add comment
-        submitComment.addEventListener("click", () => {
-            const comment = commentInput.value;
-            if (comment) {
-                const commentsRef = ref(database, "comments");
-                push(commentsRef, {
-                    text: comment,
-                    userId: auth.currentUser.uid,
-                    timestamp: Date.now()
-                });
-                commentInput.value = "";
-            }
-        });
-
-        // Load comments
-        function loadComments() {
-            const commentsRef = ref(database, "comments");
-            onValue(commentsRef, (snapshot) => {
-                commentsList.innerHTML = "";
-                snapshot.forEach((childSnapshot) => {
-                    const data = childSnapshot.val();
-                    const li = document.createElement("li");
-                    li.textContent = data.text;
-                    commentsList.appendChild(li);
-                });
-            });
-        }
     </script>
 </body>
 </html>
