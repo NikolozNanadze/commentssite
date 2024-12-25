@@ -3,170 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Комментарии</title>
+    <title>Авторизация через GitHub</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            text-align: center;
             margin: 0;
             padding: 20px;
             background-color: #f8f9fa;
         }
         h1 {
-            text-align: center;
             color: #333;
-        }
-        .comment-box {
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background-color: #fff;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            font-size: 14px;
-            resize: none;
-            margin-bottom: 10px;
         }
         button {
             padding: 10px 20px;
-            background-color: #4caf50;
-            color: white;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007bff;
             border: none;
             border-radius: 5px;
             cursor: pointer;
         }
         button:hover {
-            background-color: #45a049;
+            background-color: #0056b3;
         }
-        ul {
-            list-style: none;
-            padding: 0;
-        }
-        li {
-            background-color: #fff;
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-            position: relative;
-        }
-        .delete-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            padding: 5px 10px;
-            cursor: pointer;
-        }
-        .delete-btn:hover {
-            background: #c0392b;
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
         }
     </style>
 </head>
 <body>
-    <h1>Комментарии</h1>
-    <div class="comment-box">
-        <textarea id="commentInput" placeholder="Напишите комментарий..."></textarea>
-        <button id="submitComment">Отправить</button>
-    </div>
-    <ul id="commentsList"></ul>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+    <h1>Войти через GitHub</h1>
+    <button id="loginButton">Войти через GitHub</button>
+    <div id="result"></div>
 
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBHqJnWtHQAyOEzLb8UXcPtepND1pMs53I",
-            authDomain: "comments-6024f.firebaseapp.com",
-            databaseURL: "https://comments-6024f-default-rtdb.firebaseio.com/",
-            projectId: "comments-6024f",
-            storageBucket: "comments-6024f.appspot.com",
-            messagingSenderId: "816381498544",
-            appId: "1:816381498544:web:27ba0250808854dddf5775",
-            measurementId: "G-N9WYNS14YK"
-        };
+    <script>
+        // Замени на свой Client ID и Redirect URL
+        const CLIENT_ID = "Iv1.123456789abcdef"; // Замените на ваш реальный Client ID
+        const REDIRECT_URI = "http://localhost:5500"; // Замените на ваш реальный Redirect URL
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const database = getDatabase(app);
-
-        // DOM Elements
-        const commentInput = document.getElementById('commentInput');
-        const submitButton = document.getElementById('submitComment');
-        const commentsList = document.getElementById('commentsList');
-
-        // Google Authentication
-        const provider = new GoogleAuthProvider();
-        let currentUser = null;
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                alert(`Добро пожаловать, ${user.displayName}!`);
-            } else {
-                signInWithPopup(auth, provider).then((result) => {
-                    currentUser = result.user;
-                    alert(`Привет, ${currentUser.displayName}!`);
-                }).catch((error) => {
-                    console.error("Ошибка авторизации:", error);
-                });
-            }
+        // Кнопка входа
+        document.getElementById("loginButton").addEventListener("click", () => {
+            const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+            window.location.href = githubAuthUrl;
         });
 
-        // Add Comment
-        submitButton.addEventListener('click', () => {
-            const comment = commentInput.value.trim();
-            if (comment && currentUser) {
-                const commentsRef = ref(database, 'comments');
-                push(commentsRef, {
-                    text: comment,
-                    userId: currentUser.uid,
-                    userName: currentUser.displayName,
-                    timestamp: Date.now()
-                });
-                commentInput.value = '';
-            } else {
-                alert("Пожалуйста, авторизуйтесь или введите текст комментария.");
-            }
-        });
+        // Проверка на наличие временного "code" после редиректа
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get("code");
 
-        // Display Comments
-        const commentsRef = ref(database, 'comments');
-        onValue(commentsRef, (snapshot) => {
-            commentsList.innerHTML = '';
-            const sortedComments = Object.entries(snapshot.val() || {}).sort((a, b) => b[1].timestamp - a[1].timestamp);
-            sortedComments.forEach(([key, commentData]) => {
-                const li = document.createElement('li');
-                li.textContent = `${commentData.userName}: ${commentData.text}`;
-                li.dataset.id = key;
-
-                // Delete Button
-                const deleteBtn = document.createElement('button');
-                deleteBtn.textContent = "Удалить";
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.addEventListener('click', () => {
-                    if (currentUser && currentUser.uid === commentData.userId) {
-                        remove(ref(database, `comments/${key}`));
-                    } else {
-                        alert("Вы можете удалять только свои комментарии!");
-                    }
-                });
-
-                li.appendChild(deleteBtn);
-                commentsList.appendChild(li);
-            });
-        });
+        if (code) {
+            // Показываем временный "code" пользователю
+            document.getElementById("result").innerHTML = `
+                <p>Вы успешно авторизовались!</p>
+                <p>Ваш временный код: <strong>${code}</strong></p>
+                <p>Теперь отправьте этот код на сервер для получения Access Token.</p>
+            `;
+        }
     </script>
 </body>
 </html>
