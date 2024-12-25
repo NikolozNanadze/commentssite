@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Комментарии</title>
+</head>
+<body>
+    <h1>Комментарии</h1>
+    <textarea id="commentInput" placeholder="Напишите комментарий..."></textarea>
+    <button id="submitComment">Отправить</button>
+    <ul id="commentsList"></ul>
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBHqJnWtHQAyOEzLb8UXcPtepND1pMs53I",
+            authDomain: "comments-6024f.firebaseapp.com",
+            databaseURL: "https://comments-6024f-default-rtdb.firebaseio.com/",
+            projectId: "comments-6024f",
+            storageBucket: "comments-6024f.appspot.com",
+            messagingSenderId: "816381498544",
+            appId: "1:816381498544:web:27ba0250808854dddf5775",
+            measurementId: "G-N9WYNS14YK"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // DOM элементы
+        const commentInput = document.getElementById('commentInput');
+        const submitButton = document.getElementById('submitComment');
+        const commentsList = document.getElementById('commentsList');
+
+        // Добавить комментарий в базу данных
+        submitButton.addEventListener('click', () => {
+            const comment = commentInput.value.trim();
+            if (comment) {
+                const commentsRef = ref(database, 'comments');
+                push(commentsRef, comment);
+                commentInput.value = ''; // Очистить поле ввода
+            }
+        });
+
+        // Отображение комментариев из базы данных
+        const commentsRef = ref(database, 'comments');
+        onValue(commentsRef, (snapshot) => {
+            commentsList.innerHTML = ''; // Очистить список
+            snapshot.forEach((childSnapshot) => {
+                const comment = childSnapshot.val();
+                const li = document.createElement('li');
+                li.textContent = comment;
+                commentsList.appendChild(li);
+            });
+        });
+    </script>
+</body>
+</html>
