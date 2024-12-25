@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Авторизация через GitHub</title>
+    <title>Регистрация и Вход</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,6 +14,21 @@
         }
         h1 {
             color: #333;
+        }
+        .form-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
         }
         button {
             padding: 10px 20px;
@@ -27,41 +42,98 @@
         button:hover {
             background-color: #0056b3;
         }
-        #result {
-            margin-top: 20px;
-            font-size: 18px;
-            color: #333;
+        .error {
+            color: red;
+            font-size: 14px;
+        }
+        .success {
+            color: green;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
-    <h1>Войти через GitHub</h1>
-    <button id="loginButton">Войти через GitHub</button>
-    <div id="result"></div>
+    <h1>Регистрация и Вход</h1>
+    <div class="form-container">
+        <h2>Регистрация</h2>
+        <input type="email" id="registerEmail" placeholder="Введите Email" />
+        <input type="password" id="registerPassword" placeholder="Введите Пароль" />
+        <button id="registerButton">Зарегистрироваться</button>
+        <p class="error" id="registerError"></p>
+        <p class="success" id="registerSuccess"></p>
+    </div>
+    <div class="form-container" style="margin-top: 20px;">
+        <h2>Вход</h2>
+        <input type="email" id="loginEmail" placeholder="Введите Email" />
+        <input type="password" id="loginPassword" placeholder="Введите Пароль" />
+        <button id="loginButton">Войти</button>
+        <p class="error" id="loginError"></p>
+    </div>
 
-    <script>
-        // Замени на свой Client ID и Redirect URL
-        const CLIENT_ID = "Iv1.123456789abcdef"; // Замените на ваш реальный Client ID
-        const REDIRECT_URI = "http://localhost:5500"; // Замените на ваш реальный Redirect URL
+    <script type="module">
+        // Импорт Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 
-        // Кнопка входа
-        document.getElementById("loginButton").addEventListener("click", () => {
-            const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
-            window.location.href = githubAuthUrl;
+        // Firebase конфигурация (замени своими данными)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBHqJnWtHQAyOEzLb8UXcPtepND1pMs53I",
+            authDomain: "comments-6024f.firebaseapp.com",
+            projectId: "comments-6024f",
+            storageBucket: "comments-6024f.appspot.com",
+            messagingSenderId: "816381498544",
+            appId: "1:816381498544:web:27ba0250808854dddf5775"
+        };
+
+        // Инициализация Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // Элементы для регистрации
+        const registerEmail = document.getElementById("registerEmail");
+        const registerPassword = document.getElementById("registerPassword");
+        const registerButton = document.getElementById("registerButton");
+        const registerError = document.getElementById("registerError");
+        const registerSuccess = document.getElementById("registerSuccess");
+
+        // Регистрация
+        registerButton.addEventListener("click", () => {
+            const email = registerEmail.value;
+            const password = registerPassword.value;
+
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    registerError.textContent = "";
+                    registerSuccess.textContent = "Регистрация успешна!";
+                })
+                .catch((error) => {
+                    registerError.textContent = error.message;
+                    registerSuccess.textContent = "";
+                });
         });
 
-        // Проверка на наличие временного "code" после редиректа
-        const params = new URLSearchParams(window.location.search);
-        const code = params.get("code");
+        // Элементы для входа
+        const loginEmail = document.getElementById("loginEmail");
+        const loginPassword = document.getElementById("loginPassword");
+        const loginButton = document.getElementById("loginButton");
+        const loginError = document.getElementById("loginError");
 
-        if (code) {
-            // Показываем временный "code" пользователю
-            document.getElementById("result").innerHTML = `
-                <p>Вы успешно авторизовались!</p>
-                <p>Ваш временный код: <strong>${code}</strong></p>
-                <p>Теперь отправьте этот код на сервер для получения Access Token.</p>
-            `;
-        }
+        // Вход
+        loginButton.addEventListener("click", () => {
+            const email = loginEmail.value;
+            const password = loginPassword.value;
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    loginError.textContent = "";
+                    alert(`Добро пожаловать, ${user.email}!`);
+                })
+                .catch((error) => {
+                    loginError.textContent = error.message;
+                });
+        });
     </script>
 </body>
 </html>
