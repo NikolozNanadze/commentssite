@@ -1,238 +1,121 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Случайные топики и комментарии</title>
+    <title>Комментарии Firebase</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f8f9fa;
+            background-color: #f4f4f9;
             text-align: center;
+            margin: 0;
+            padding: 0;
         }
-        h1, h2 {
-            color: #333;
-        }
-        .form-container, .topic-container {
-            max-width: 600px;
+        .container {
             margin: 20px auto;
-            background: #fff;
+            max-width: 600px;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            text-align: left;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
         }
-        input, textarea, button {
-            width: 100%;
+        input[type="text"] {
+            width: 80%;
             padding: 10px;
             margin: 10px 0;
             border: 1px solid #ccc;
-            border-radius: 4px;
+            border-radius: 5px;
         }
         button {
-            background-color: #007bff;
-            color: #fff;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
             border: none;
+            border-radius: 5px;
             cursor: pointer;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: #45a049;
         }
-        ul {
-            list-style: none;
-            padding: 0;
+        .comments {
+            margin-top: 20px;
+            text-align: left;
         }
-        li {
-            background: #fff;
-            margin: 10px 0;
+        .comment {
             padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-            position: relative;
-        }
-        .delete-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            padding: 5px 10px;
-            cursor: pointer;
-        }
-        .delete-btn:hover {
-            background: #c0392b;
+            border-bottom: 1px solid #ddd;
         }
     </style>
 </head>
 <body>
-    <h1>Случайные Топики</h1>
+    <header>
+        <h1>Система комментариев</h1>
+    </header>
+    <div class="container">
+        <!-- Поле ввода комментария -->
+        <input type="text" id="commentInput" placeholder="Напишите комментарий...">
+        <button onclick="addComment()">Отправить</button>
 
-    <div id="authContainer" class="form-container">
-        <h2>Регистрация</h2>
-        <input type="text" id="nickname" placeholder="Введите Никнейм" />
-        <input type="email" id="registerEmail" placeholder="Введите Email" />
-        <input type="password" id="registerPassword" placeholder="Введите Пароль" />
-        <button id="registerButton">Зарегистрироваться</button>
-        <p id="registerError" style="color: red;"></p>
-
-        <h2>Вход</h2>
-        <input type="email" id="loginEmail" placeholder="Введите Email" />
-        <input type="password" id="loginPassword" placeholder="Введите Пароль" />
-        <button id="loginButton">Войти</button>
-        <p id="loginError" style="color: red;"></p>
+        <!-- Секция для отображения комментариев -->
+        <div id="comments" class="comments">
+            <h3>Комментарии:</h3>
+        </div>
     </div>
 
-    <div id="mainContainer" class="topic-container" style="display: none;">
-        <h2 id="currentTopic">Нажмите на кнопку для генерации топика</h2>
-        <button id="generateTopic">Генерировать Топик</button>
-
-        <h3>Оставьте комментарий</h3>
-        <textarea id="commentInput" placeholder="Напишите комментарий..."></textarea>
-        <button id="submitComment">Отправить</button>
-        <ul id="commentsList"></ul>
-        <button id="logoutButton">Выйти</button>
-    </div>
-
+    <!-- Firebase Configuration -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+        // Импорт необходимых функций из Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
-        // Firebase Configuration
+        // Конфигурация Firebase
         const firebaseConfig = {
-            apiKey: "AIzaSyBHqJnWtHQAyOEzLb8UXcPtepND1pMs53I",
-            authDomain: "comments-6024f.firebaseapp.com",
-            databaseURL: "https://comments-6024f-default-rtdb.firebaseio.com/",
-            projectId: "comments-6024f",
-            storageBucket: "comments-6024f.appspot.com",
-            messagingSenderId: "816381498544",
-            appId: "1:816381498544:web:27ba0250808854dddf5775"
+            apiKey: "AIzaSyCV2LUmPqo1HcELDRjk6K4H6rxT9gB4MvU",
+            authDomain: "phrase-544d8.firebaseapp.com",
+            databaseURL: "https://phrase-544d8-default-rtdb.firebaseio.com/",
+            projectId: "phrase-544d8",
+            storageBucket: "phrase-544d8.appspot.com",
+            messagingSenderId: "585344862547",
+            appId: "1:585344862547:web:ffae33c41914d42628b9a6",
+            measurementId: "G-DGBHZ916Y5"
         };
 
-        // Initialize Firebase
+        // Инициализация Firebase
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const database = getDatabase(app);
 
-        // Elements
-        const authContainer = document.getElementById("authContainer");
-        const mainContainer = document.getElementById("mainContainer");
-        const registerEmail = document.getElementById("registerEmail");
-        const registerPassword = document.getElementById("registerPassword");
-        const nickname = document.getElementById("nickname");
-        const registerButton = document.getElementById("registerButton");
-        const registerError = document.getElementById("registerError");
+        // Функция для добавления комментария
+        function addComment() {
+            const commentInput = document.getElementById("commentInput");
+            const commentText = commentInput.value.trim(); // Убираем пробелы
 
-        const loginEmail = document.getElementById("loginEmail");
-        const loginPassword = document.getElementById("loginPassword");
-        const loginButton = document.getElementById("loginButton");
-        const loginError = document.getElementById("loginError");
-
-        const logoutButton = document.getElementById("logoutButton");
-        const generateTopicButton = document.getElementById("generateTopic");
-        const currentTopic = document.getElementById("currentTopic");
-        const commentInput = document.getElementById("commentInput");
-        const submitComment = document.getElementById("submitComment");
-        const commentsList = document.getElementById("commentsList");
-
-        const topics = [
-            "Как прошёл твой день?",
-            "Самое смешное, что случилось с тобой за последний год?",
-            "Какой предмет в школе ты ненавидишь?",
-            "Куда бы ты хотел отправиться в путешествие?",
-            "Какое твоё любимое блюдо?",
-            "Расскажи о своём самом странном сне.",
-            "Что для тебя важнее всего в жизни?",
-            "Какой фильм или сериал ты пересматривал больше всего?",
-            "Кем ты мечтал стать в детстве?",
-            "Что ты больше всего любишь делать в свободное время?",
-            "Какая песня тебя вдохновляет?",
-            "Какую суперспособность ты хотел бы иметь?",
-            "Если бы ты выиграл миллион, на что бы его потратил?",
-            "Какой день из жизни ты бы хотел пережить заново?",
-            "Что ты никогда не попробуешь в жизни?"
-        ];
-
-        // Регистрация
-        registerButton.addEventListener("click", () => {
-            const email = registerEmail.value;
-            const password = registerPassword.value;
-            const nick = nickname.value;
-
-            if (!nick) {
-                registerError.textContent = "Введите никнейм!";
-                return;
-            }
-
-            createUserWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    push(ref(database, `users/${user.uid}`), { nickname: nick });
-                    registerError.textContent = "";
-                })
-                .catch((error) => {
-                    registerError.textContent = error.message;
+            if (commentText) {
+                const commentsRef = ref(database, "comments"); // Ссылка на ветку "comments"
+                push(commentsRef, {
+                    text: commentText, // Сам текст комментария
+                    timestamp: Date.now() // Временная метка
+                }).then(() => {
+                    console.log("Комментарий успешно добавлен!");
+                    commentInput.value = ""; // Очищаем поле ввода
+                }).catch((error) => {
+                    console.error("Ошибка при добавлении комментария:", error);
                 });
-        });
-
-        // Вход
-        loginButton.addEventListener("click", () => {
-            const email = loginEmail.value;
-            const password = loginPassword.value;
-
-            signInWithEmailAndPassword(auth, email, password)
-                .then(() => {
-                    loginError.textContent = "";
-                })
-                .catch((error) => {
-                    loginError.textContent = error.message;
-                });
-        });
-
-        // Генерация случайного топика
-        generateTopicButton.addEventListener("click", () => {
-            const randomIndex = Math.floor(Math.random() * topics.length);
-            currentTopic.textContent = topics[randomIndex];
-            commentsList.innerHTML = ""; // Очищаем список комментариев для нового топика
-        });
-
-        // Добавление комментария
-        submitComment.addEventListener("click", () => {
-            const comment = commentInput.value;
-            const topic = currentTopic.textContent;
-
-            if (!comment || topic === "Нажмите на кнопку для генерации топика") {
-                alert("Сначала выберите топик и напишите комментарий!");
-                return;
-            }
-
-            const commentsRef = ref(database, `topics/${topic}`);
-            push(commentsRef, {
-                text: comment,
-                userId: auth.currentUser.uid,
-                timestamp: Date.now()
-            });
-            commentInput.value = "";
-        });
-
-        // Выход
-        logoutButton.addEventListener("click", () => {
-            signOut(auth).catch((error) => console.error("Ошибка выхода:", error));
-        });
-
-        // Проверка авторизации
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                authContainer.style.display = "none";
-                mainContainer.style.display = "block";
             } else {
-                authContainer.style.display = "block";
-                mainContainer.style.display = "none";
+                alert("Комментарий не может быть пустым!");
             }
+        }
+
+        // Функция для отображения комментариев в реальном времени
+        const commentsRef = ref(database, "comments");
+        const commentsDiv = document.getElementById("comments");
+
+        onChildAdded(commentsRef, (snapshot) => {
+            const comment = snapshot.val(); // Получаем данные комментария
+            const commentElement = document.createElement("div");
+            commentElement.className = "comment";
+            commentElement.innerText = comment.text; // Отображаем текст комментария
+            commentsDiv.appendChild(commentElement); // Добавляем комментарий в HTML
         });
     </script>
 </body>
